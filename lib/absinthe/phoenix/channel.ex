@@ -87,6 +87,21 @@ defmodule Absinthe.Phoenix.Channel do
     {:reply, {:ok, %{subscriptionId: doc_id}}, socket}
   end
 
+  intercept(["unsubscribe"])
+
+  def handle_out("unsubscribe", %{"subscriptionId" => doc_id}, socket) do
+    pubsub =
+      socket.assigns
+      |> Map.get(:absinthe, %{})
+      |> Map.get(:opts, [])
+      |> Keyword.get(:context, %{})
+      |> Map.get(:pubsub, socket.endpoint)
+
+    Phoenix.PubSub.unsubscribe(socket.pubsub_server, doc_id)
+    Absinthe.Subscription.unsubscribe(pubsub, doc_id)
+    {:noreply, socket}
+  end
+
   defp run_doc(socket, query, config, opts) do
     case run(query, config[:schema], config[:pipeline], opts) do
       {:ok, %{"subscribed" => topic}, context} ->
